@@ -1,12 +1,14 @@
 // 블록체인의 모든 데이터 구조는 여기서 전부 개발한다
+const sha256 = require('sha256');
 
 // 생성자 함수 (JS에선 class보다 생성자함수 사용을 더 선호하기에 class 대신 사용)
 function Blockchain() {
     this.chain = []; // 블록체인의 핵심이 저장되는 곳
     this.penddingTransactions = []; // 블록에 아직 저장되지 않은 모든 트랜잭션들을 저장해두는 곳
+    this.createNewBlock(100, '0', '0'); // ★ 최초의 블록인 Genesis Block을 만들기 위해 값을 임의로 넣음
 };
 
-// ★createNewBlock: 새로운 블록을 생성하는 메소드
+// ★ createNewBlock: 새로운 블록을 생성하는 메소드
 Blockchain.prototype.createNewBlock = function (nonce, previousBlockHash, hash) {
     const newBlock = { // ★newBlock: Blockchain 안의 새로운 블록. 모든 관련 데이터들은 이 블록 안에 저장
         index : this.chain.length + 1, // index: newBlock의 번호(index)를 매기기 위함
@@ -21,12 +23,12 @@ Blockchain.prototype.createNewBlock = function (nonce, previousBlockHash, hash) 
     return newBlock; // 제일 마지막 블록을 채굴하면 다시 초기화하여 새로운 블록을 맞을 준비를 함
 };
 
-// ★getLastBlock: 가장 마지막 블록을 반환해주는 메소드
+// ★ getLastBlock: 가장 마지막 블록을 반환해주는 메소드
 Blockchain.prototype.getLastBlock = function () {
     return this.chain[this.chain.length - 1];
 };
 
-// ★createNewTransaction: 새로운 트랜잭션을 생성하는 메소드
+// ★ createNewTransaction: 새로운 트랜잭션을 생성하는 메소드
 Blockchain.prototype.createNewTransaction = function (amount, sender, recipient) { // amount: 트랜잭션을 통해 송금하는 양, sender: 발송인의 주소, recipient: 수신자의 주소
     const newTransaction = {
         amount : amount,
@@ -35,6 +37,24 @@ Blockchain.prototype.createNewTransaction = function (amount, sender, recipient)
     }
     this.penddingTransactions.push(newTransaction);
     return this.getLastBlock() ['index'] + 1
+};
+
+// ★ hashBlock: 블록을 입력받아 이 블록의 데이터를 고정된 길이의 문자열로 해싱하는 일을 수행
+Blockchain.prototype.hashBlock = function(previousBlockHash, currentBlockdata, nonce) { // 함수 내 인자: 값을 생성하고자 하는 블록의 데이터. 즉 메소드 내에서 해싱할 데이터들(하나의 블록으로 부터 3가지 인자가 모두 온다)
+    const dataAsString = previousBlockHash + nonce.toString() + JSON.stringify(currentBlockdata); // nonce는 숫자이기에 문자열로 변경, currentBlockdata는 하나의 객체(트랜잭션)지만 json.stringify로 문자열로 변경
+    const hash = sha256(dataAsString); // 이를 통해 모든 블록 데이터(3개의 인자)로부터 해싱 값을 만듦
+    return hash;
+};
+
+// ★ proofOfWork(작업증명, POW): 
+Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockdata) {
+    let nonce = 0;
+    let hash = this.hashBlock(previousBlockHash, currentBlockdata, nonce);
+    while (hash.substring(0, 4) !== '0000') { // 우리는 해시값 앞에 0000으로 시작하는 값만 추출하길 조건을 걸었다. 0000으로 시작하는 hash값을 찾기 위해 while문을 돌린다
+        nonce++;
+        hash = this.hashBlock(previousBlockHash, currentBlockdata, nonce);
+    };
+    return nonce;
 };
 
 module.exports = Blockchain;

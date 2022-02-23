@@ -1,5 +1,5 @@
-// blockchain.js에서 만든 프로그램을 test하기 위한 공간
-const Blockchain = require('./blockchain');
+// blockchain의 블록과 트랜잭션 사이의 관계
+const Blockchain = require('../dev/blockchain');
 
 const bitcoin = new Blockchain();
 bitcoin.createNewBlock(789457, 'OIUOEDJETH8754DHKD', '78SHNEG45DER56'); // 1. 최초의 블록 하나를 생성
