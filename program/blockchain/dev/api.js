@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const Blockchain = require('./blockchain');
-const uuid = require('uuid'); // uuid: 유일무이한 무작위 문자열을 반들어냄 -> 채굴 보상인 bitcoin을 주기 위해 통신할 네트워크 노드의 주소로 사용하기 위함
+const { v1: uuid } = require('uuid'); // uuid: 유일무이한 무작위 문자열을 반들어냄 -> 채굴 보상인 bitcoin을 주기 위해 통신할 네트워크 노드의 주소로 사용하기 위함
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -30,15 +30,18 @@ app.get('/mine', function(req, res) {
     };
     const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
     const blockHash = bitcoin.hashBlock(previousBlockHash, currentBlockData, nonce);
-    const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
-
-    res.json({
-        block: newBlock,
-        note: "New block mined successfully."
-    });
 
     const nodeAddress = uuid().split('-').join('');
     bitcoin.createNewTransaction(12.5, "00", nodeAddress); // 18년 bitcoin 반감기 기준 채굴 보상 = 12.5코인
+    
+    const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
+    
+    
+    res.json({
+        note: "New block mined successfully.",
+        block: newBlock
+    });
+
 });
 
 const port = 3000;
