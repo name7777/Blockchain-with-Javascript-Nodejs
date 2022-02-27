@@ -1,10 +1,14 @@
 // 블록체인의 모든 데이터 구조는 여기서 전부 개발한다
 const sha256 = require('sha256');
+const currentNodeUrl = process.argv[3];
 
 // 생성자 함수 (JS에선 class보다 생성자함수 사용을 더 선호하기에 class 대신 사용)
 function Blockchain() {
     this.chain = []; // 블록체인의 핵심이 저장되는 곳
     this.penddingTransactions = []; // 블록에 아직 저장되지 않은 모든 트랜잭션들을 저장해두는 곳
+
+    this.currentNodeUrl = currentNodeUrl;
+    this.networkNodes = [];
     this.createNewBlock(100, '0', '0'); // ★ 최초의 블록인 Genesis Block을 만들기 위해 값을 임의로 넣음
 };
 
