@@ -38,12 +38,10 @@ app.get('/mine', (req, res) => {
     
     const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
     
-    
     res.json({
         note: "New block mined successfully.",
         block: newBlock
     });
-
 });
 
 // 네트워크
@@ -104,3 +102,5 @@ app.post('/register-nodes-bulk', function(req, res) {
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}/blockchain`)
 });
+
+// ~22/3/5까지 git 휴식
