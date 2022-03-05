@@ -103,5 +103,5 @@ app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}/blockchain`)
 });
 
-// ~22/3/5까지 git 휴식
-// 3/4 잠깐 놀러옴
+// 1) 책 완독 및 코드 이해하기
+// 2) 네트워크 통신 이해하기
