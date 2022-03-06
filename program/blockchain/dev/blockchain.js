@@ -51,7 +51,7 @@ Blockchain.prototype.hashBlock = (previousBlockHash, currentBlockdata, nonce) =>
     return hash;
 };
 
-// ★ proofOfWork(작업증명, POW): 
+// ★ proofOfWork(작업증명, POW): 결국 hash를 풀기 위한 nonce값은 무엇이냐를 뜻하는 것 같음
 Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockdata) {
     let nonce = 0;
     let hash = this.hashBlock(previousBlockHash, currentBlockdata, nonce);
@@ -60,6 +60,38 @@ Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockdata)
         hash = this.hashBlock(previousBlockHash, currentBlockdata, nonce);
     };
     return nonce;
+};
+
+// ★ consensus algorithms(합의 알고리즘)
+Blockchain.prototype.chainIsValid = function(blockchain) {
+    let validChain = true;
+
+    for (var i = 1; i < blockchain.length; i++) {
+        const currentBlock = blockchain[i];
+        const prevBlock = blockchain[i - 1];
+        const blockHash = this.hashBlock( // 2차 검증: 해당 blockhash가 hash의 조건인 0000으로 시작하는지 확인하기 위해 blockHash 변수에 currentBlock의 hash값을 담음
+            prevBlock['hash'],
+            { transactions: currentBlock['transactions'], index: currentBlock['index'] },
+            currentBlock['nonce']
+        );
+
+        // 1차 검증: 모든 해시값들이 정렬되어 있는지 확인
+        if (currentBlock['previousBlockHash'] !== prevBlock['hash']) validChain = false;
+
+        // 2차 검증: 각 블록을 다시 해시하여 blockHash 값이 4개의 0으로 시작하는지 확인
+        if (blockHash.substring(0, 4) !== '0000') validChain = false;
+    };
+
+    // 3차 검증: Genesis block 검사 - index가 0번이므로 위에서 검사할 수 없으며 또한, 작업증명 없이 스스로 만들어진 블록이기에 hash가 맞는지 직접 검사해야 함
+    const genesisBlock = blockchain[0];
+    const correctNonce = genesisBlock['nonce'] === 100;
+    const correctPreviousBlockHash = genesisBlock['previousBlockHash'] === 0;
+    const correctHash = genesisBlock['hash'] === '0';
+    const correctTransactions = genesisBlock['transactions'].length === 0; // 제네시스 블록 내에 그 어떤 트랜잭션도 담겨있지 않는지 확인
+
+    if (!correctNonce || !correctPreviousBlockHash || !correctHash || !correctTransactions) validChain = false;
+    
+    return validChain;
 };
 
 // ★ addTransactionToPendingTransactions: 반환 된 newTransaction을 블록체인의 pendingTransactions 배열에 넣는 작업

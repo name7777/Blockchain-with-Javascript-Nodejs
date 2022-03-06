@@ -38,11 +38,63 @@ app.get('/mine', (req, res) => {
     bitcoin.createNewTransaction(12.5, "00", nodeAddress); // 18년 bitcoin 반감기 기준 채굴 보상 = 12.5코인
     
     const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
-    
-    res.json({
-        note: "New block mined successfully.",
-        block: newBlock
-    });
+	
+	const requestPromises = []; // 밑에서 push로 promise를 담을 배열
+	bitcoin.networkNodes.forEach(networkNodeUrl => { // newBlock을 다른 모든 노드에게 broadcast하는 기능
+		const requestOptions = {
+			uri: networkNodeUrl + '/receive-new-block',
+			method: 'POST',
+			body: { newBlock: newBlock },
+			json: true
+		};
+
+		requestPromises.push(rp(requestOptions));
+	});
+
+	Promise.all(requestPromises)
+	.then(data => {
+		const requestOptions = {
+			uri: bitcoin.currentNodeUrl + '/transaction/broadcast',
+			method: 'POST',
+			body: {
+				amount: 12.5,
+				sender: "00",
+				recipient: nodeAddress
+			},
+			json: true
+		};
+
+		return rp(requestOptions);
+	})
+	.then(data => {
+		res.json({
+			note: "New block mined & broadcast successfully",
+			block: newBlock
+		});
+	});
+});
+
+// mine 엔드포인트에서 업데이트한 내용을 받아 새 정보를 구축하는 곳
+app.post('/receive-new-block', (req, res) => { //
+	const newBlock = req.body.newBlock;
+	const lastBlock = bitcoin.getLastBlock(); // 위 newBlock이 실제 블록인지, 체인에 제대로 맞는지 확인하기 위해 마지막 블록의 hash를 불러옴
+	const correctHash = lastBlock.hash == newBlock.previousBlockHash; // 1차 점검
+	const correctIndex = lastBlock['index'] + 1 === newBlock['index']; // 2차 점검 - 새로 생성 된 block은 lastBlock의 index에 포함 되어야 하므로 이 논리식을 채택
+
+	if(correctHash && correctIndex) {
+		bitcoin.chain.push(newBlock);
+		bitcoin.pendingTransactions = []; // chain에 block을 추가(갱신)했으므로 미결 트랜잭션은 다시 초기화
+		res.json({
+			note: 'New block received and accepted.',
+			newblock: newBlock
+		});
+	}
+	else {
+		res.json({
+			note: 'New block rejected',
+			newBlock: newBlock
+		});
+	}
 });
 
 // 네트워크
