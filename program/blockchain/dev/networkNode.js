@@ -17,9 +17,10 @@ app.get('/blockchain', (req, res) => {
 });
 
 // 2) 사용자가 transaction 사용 시 createNewTransaction 메소드에 저장하고 알림을 해줌
-app.post('/transaction', function(req, res) {
-    const blockIndex = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
-    res.json({ note: `Transaction will be added in block ${blockIndex}.` })
+app.post('/transaction', (req, res) => {
+	const newTransaction = req.body;
+	const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
+	res.json({ note: `Transaction will be added in block ${blockIndex}.` });
 });
 
 // 3) 새로운 블록을 생성하고 채굴
@@ -27,7 +28,7 @@ app.get('/mine', (req, res) => {
     const lastBlock = bitcoin.getLastBlock();
     const previousBlockHash = lastBlock['hash'];
     const currentBlockData = {
-        transactions: bitcoin.penddingTransactions,
+        transactions: bitcoin.pendingTransactions,
         index: lastBlock['index'] + 1
     };
     const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
@@ -46,7 +47,7 @@ app.get('/mine', (req, res) => {
 
 // 네트워크
 // 1) 새 노드를 자체 등록한 후 새 노드를 네트워크 내의 다른 모든 노드에게 broadcast함
-app.post('/register-and-broadcast-node', function(req, res) {
+app.post('/register-and-broadcast-node', (req, res) => {
 	const newNodeUrl = req.body.newNodeUrl;
 	if (bitcoin.networkNodes.indexOf(newNodeUrl) == -1) bitcoin.networkNodes.push(newNodeUrl);
 
@@ -79,7 +80,7 @@ app.post('/register-and-broadcast-node', function(req, res) {
 });
 
 // 2) register-node: 새로운 네트워크 노드를 받아들이기만 함(broadcast X)
-app.post('/register-node', function(req, res) {
+app.post('/register-node', (req, res) => {
 	const newNodeUrl = req.body.newNodeUrl;
 	const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
 	const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
@@ -88,7 +89,7 @@ app.post('/register-node', function(req, res) {
 });
 
 // 3) 이미 네트워크에 존재하는 모든 노드들의 URL을 받아 새로운 노드에 등록
-app.post('/register-nodes-bulk', function(req, res) {
+app.post('/register-nodes-bulk', (req, res) => {
 	const allNetworkNodes = req.body.allNetworkNodes;
 	allNetworkNodes.forEach(networkNodeUrl => {
 		const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
@@ -99,9 +100,29 @@ app.post('/register-nodes-bulk', function(req, res) {
 	res.json({ note: 'Bulk registration successful.' });
 });
 
+// 4) /transaction/broadcast: 1) 새 트랜잭션을 생성 2) 생성한 새 트랜잭션을 네트워크의 다른 모든 노드에 broadcast
+app.post('/transaction/broadcast', function(req, res) {
+	const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
+	bitcoin.addTransactionToPendingTransactions(newTransaction);
+
+	const requestPromises = [];
+	bitcoin.networkNodes.forEach(networkNodeUrl => {
+		const requestOptions = {
+			uri: networkNodeUrl + '/transaction',
+			method: 'POST',
+			body: newTransaction,
+			json: true
+		};
+
+		requestPromises.push(rp(requestOptions));
+	});
+
+	Promise.all(requestPromises)
+	.then(data => {
+		res.json({ note: 'Transaction created and broadcast successfully.' });
+	});
+});
+
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}/blockchain`)
 });
-
-// 1) 책 완독 및 코드 이해하기
-// 2) 네트워크 통신 이해하기
