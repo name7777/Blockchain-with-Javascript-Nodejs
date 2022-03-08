@@ -152,6 +152,50 @@ app.post('/register-nodes-bulk', (req, res) => {
 	res.json({ note: 'Bulk registration successful.' });
 });
 
+// consensus(합의 알고리즘)
+app.get('/consensus', (req, res) => {
+	const requestPromises = [];
+	bitcoin.networkNodes.forEach(networkNodeUrl => { // 다른 모든 노드들에게 요청을 보내고 그들의 블록체인 복사본을 가져와서 현재의 노드에 있는 블록체인 복사본과 비교
+		const requestOptions = {
+			uri: networkNodeUrl + '/blockchain',
+			method: 'GET',
+			json: true
+		};
+		requestPromises.push(rp(requestOptions));
+	});
+
+	Promise.all(requestPromises)
+	.then(blockchains => {
+		const currentChainLength = bitcoin.chain.length; // 현재 blockchain의 길이보다 더 긴 blockchain이 발견 될 경우 그것을 대체하는 로직
+		let maxChainLength = currentChainLength;
+		let newLongestChain = null;
+		let newPendingTransactions = null;
+
+		blockchains.forEach(blockchain => { // forEach 반복문이 실행되면 현재 노드의 체인을 교체해야 하는지 확인하고, 필요한 모든 정보들이 앞서 정의한 변수들에 저장됨
+			if(blockchain.chain.length > maxChainLength) {
+				maxChainLength = blockchain.chain.length;
+				newLongestChain = blockchain.chain;
+				newPendingTransactions = blockchain.pendingTransactions;
+			}
+		})
+
+		if(!newLongestChain || (newLongestChain && !bitcoin.chainIsValid(newLongestChain))) {
+			res.json({
+				note: 'Current chain has not been replaced.',
+				chain: bitcoin.chain
+			})
+		}
+		else {
+			bitcoin.chain = newLongestChain;
+			bitcoin.pendingTransactions = newPendingTransactions;
+			res.json({
+				note: 'This chain has been replaced.',
+				chain: bitcoin.chain
+			})
+		}
+	})
+});
+
 // 4) /transaction/broadcast: 1) 새 트랜잭션을 생성 2) 생성한 새 트랜잭션을 네트워크의 다른 모든 노드에 broadcast
 app.post('/transaction/broadcast', function(req, res) {
 	const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);

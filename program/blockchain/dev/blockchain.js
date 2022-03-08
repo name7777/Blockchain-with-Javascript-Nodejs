@@ -18,7 +18,7 @@ Blockchain.prototype.createNewBlock = function(nonce, previousBlockHash, hash) {
     const newBlock = { // ★newBlock: Blockchain 안의 새로운 블록. 모든 관련 데이터들은 이 블록 안에 저장
         index : this.chain.length + 1, // index: newBlock의 번호(index)를 매기기 위함
         timestamp : Date.now(), // timestamp: 블록이 생성 된 시점
-        transaction : this.pendingTransactions, // transaction: 새로운 블록을 만들었을 때 모든 새로운 트랜잭션들과 미결 트랜잭션들을 새로운 블록에 추가하고, 이를 통해 이 트랜잭션들은 블록체인 내에 보관되어 영원히 변경되지 않게 됨
+        transactions : this.pendingTransactions, // transaction: 새로운 블록을 만들었을 때 모든 새로운 트랜잭션들과 미결 트랜잭션들을 새로운 블록에 추가하고, 이를 통해 이 트랜잭션들은 블록체인 내에 보관되어 영원히 변경되지 않게 됨
         nonce : nonce, // nonce: function 인자의 nonce와 같은 값. nonce는 작업 증명(Proof of Work) 메소드를 통해 적법하게 새로운 블록을 만들었다는 증거
         hash : hash, // hash: newBlock 객체에서 온 값. pendingTransactions를 해싱 함수에 매개변수로 전달 -> 트랜잭션들은 하나의 문자열로 압축되며 이것이 hash값이 됨 ('현재' 블록의 해시값)
         previousBlockHash : previousBlockHash, // previousBlockHash: hash 속성과 매우 유사. 다만, hash는 현재 블록의 데이터를 해싱한 값이라면 previousBlockHash는 이전 블록에서 현재 블록까지의 데이터를 해싱한 값('과거부터 현재' 블록의 해시값)
@@ -85,7 +85,7 @@ Blockchain.prototype.chainIsValid = function(blockchain) {
     // 3차 검증: Genesis block 검사 - index가 0번이므로 위에서 검사할 수 없으며 또한, 작업증명 없이 스스로 만들어진 블록이기에 hash가 맞는지 직접 검사해야 함
     const genesisBlock = blockchain[0];
     const correctNonce = genesisBlock['nonce'] === 100;
-    const correctPreviousBlockHash = genesisBlock['previousBlockHash'] === 0;
+    const correctPreviousBlockHash = genesisBlock['previousBlockHash'] === '0';
     const correctHash = genesisBlock['hash'] === '0';
     const correctTransactions = genesisBlock['transactions'].length === 0; // 제네시스 블록 내에 그 어떤 트랜잭션도 담겨있지 않는지 확인
 
