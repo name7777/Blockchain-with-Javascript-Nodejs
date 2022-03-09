@@ -196,6 +196,34 @@ app.get('/consensus', (req, res) => {
 	})
 });
 
+// Block Explorer: blockhash
+app.get('/block/:blockHash', (req, res) => {
+	const blockHash = req.params.blockHash;
+	const correctBlock = bitcoin.getBlock(blockHash);
+	res.json({
+		block: correctBlock
+	});
+});
+
+// Block Explorer: transaction
+app.get('/transaction/:transactionId', (req, res) => {
+	const transactionId = req.params.transactionId;
+	const transactionData = bitcoin.getTransaction(transactionId);
+	res.json({
+		transaction: transactionData.transaction,
+		block: transactionData.block
+	});
+});
+
+// Block Explorer: address
+app.get('/address/:address', (req, res) => {
+	const address = req.params.address;
+	const addressData = bitcoin.getAddressData(address);
+	res.json({
+		addressData: addressData
+	})
+});
+
 // 4) /transaction/broadcast: 1) 새 트랜잭션을 생성 2) 생성한 새 트랜잭션을 네트워크의 다른 모든 노드에 broadcast
 app.post('/transaction/broadcast', function(req, res) {
 	const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.recipient);
@@ -215,8 +243,13 @@ app.post('/transaction/broadcast', function(req, res) {
 
 	Promise.all(requestPromises)
 	.then(data => {
-		res.json({ note: 'Transaction created and broadcast successfully.' });
+		res.json({ note: 'Transaction created and broadcast ㄴsuccessfully.' });
 	});
+});
+
+// block-explorer - index.html 가져와서 구현하기 위한 엔드포인트 구축
+app.get('/block-explorer', (req, res) => {
+	res.sendFile('./block-explorer/index.html', { root: __dirname }); // root: __dirname : 앞에 적은 경로를 가진 파일을 검색함
 });
 
 app.listen(port, () => {

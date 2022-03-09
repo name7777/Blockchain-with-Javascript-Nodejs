@@ -94,6 +94,56 @@ Blockchain.prototype.chainIsValid = function(blockchain) {
     return validChain;
 };
 
+// Block Explorer - getBlock: 전체 블록체인에서 특정 해시 관련 블록을 검색하는 메소드
+Blockchain.prototype.getBlock = function(blockHash) {
+    let correctBlock = null;
+    this.chain.forEach(block => {
+        if (block.hash === blockHash) correctBlock = block;
+    });
+    return correctBlock;
+};
+
+// Block Explorer - getTransaction: transactionId를 조회하여 해당 block을 조회하는 메소드
+Blockchain.prototype.getTransaction = function(transactionId) {
+    let correctTransaction = null;
+    let correctBlock = null;
+    this.chain.forEach(block => {
+        block.transactions.forEach(transaction => {
+            if (transaction.transactionId === transactionId) {
+                correctTransaction = transaction;
+                correctBlock = block;
+            };
+        });
+    });
+    return {
+        transaction: correctTransaction,
+        block: correctBlock
+    }
+};
+
+// Block Explorer - getAddressData
+Blockchain.prototype.getAddressData = function(address) {
+    const addressTransactions = []; // 조회하는 주소와 관련된 모든 트랜잭션을 취합하여 하나의 배열에 넣기 위함
+    this.chain.forEach(block => { 
+        block.transactions.forEach(transaction => {
+            if (transaction.sender === address || transaction.recipient === address) {
+                addressTransactions.push(transaction);
+            }
+        });
+    });
+
+    // 잔액 확인
+    let balance = 0;
+    addressTransactions.forEach(transaction => {
+        if (transaction.recipient === address) balance += transaction.amount;
+        else if (transaction.sender === address) balance -= transaction.amount;
+    });
+    return {
+        addressTransactions: addressTransactions,
+        addressBalance: balance
+    }
+};
+
 // ★ addTransactionToPendingTransactions: 반환 된 newTransaction을 블록체인의 pendingTransactions 배열에 넣는 작업
 Blockchain.prototype.addTransactionToPendingTransactions = function(transactionObj) {
 	this.pendingTransactions.push(transactionObj);
